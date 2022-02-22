@@ -1,4 +1,4 @@
-# Object Detection in Noisy Images
+# Object Detection in Images with Noise
 
 TO DO 
 - [ ] make the structure of a python package

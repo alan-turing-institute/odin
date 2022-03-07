@@ -1,17 +1,17 @@
 import torch
-import numpy as np
-import shutil
 import torchvision
 
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-from torchvision.models.detection import FasterRCNN
+
+from odin.io import save_checkpoint
 
 
 class Odin_model:
 
     def __init__(
             self,
+            checkpoint_path: str = "/models/checkpoint.pt",
             device: str = "default",
             nms: float = 0.75,
             pretrained: bool = True,
@@ -35,31 +35,35 @@ class Odin_model:
 
         self.model.to(self.device)
         self.params = [p for p in self.model.parameters() if p.requires_grad]
-        print("params set")
 
         # get number of input features for the classifier
         in_features = self.model.roi_heads.box_predictor.cls_score.in_features
 
         # replace the pre-trained head with a new one
         self.model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+        self.set_optimizer()
+        if pretrained:
+            self.model.load(checkpoint_path)
+            print("Model loaded from " + checkpoint_path)
 
-        self.checkpoint_path = './models/shapes/nms'+str(nms)+'_chkpoint_'
-        self.best_model_path = './models/shapes/nms'+str(nms)+'_bestmodel.pt'
+        else:
+            self.checkpoint_path = '/models/nms' + str(nms) + '_chkpoint_'
+            self.best_model_path = '/models/nms' + str(nms) + '_bestmodel.pt'
+            print("New model: to train, use function .train()")
         self.writer = SummaryWriter()
 
-
-    def set_optimizer(self, type: str = "default", lr: float = 0.005, momentum: float = 0.9,
-                      weight_decay: float = 0.0005, lr_scheduler = None):
+    def set_optimizer(self, opt_type: str = "default", lr: float = 0.005, momentum: float = 0.9,
+                      weight_decay: float = 0.0005, lr_scheduler=None):
         self.optimizer = torch.optim.SGD(self.params, lr, momentum, weight_decay)
         self.lr_scheduler = lr_scheduler
 
     def load(self,
-             checkpoint_path: str="./checkpoint.pt"):
+             checkpoint_path: str = "/models/checkpoint.pt"):
         """
             checkpoint_path: path to save checkpoint
         """
         # load check point
-        checkpoint = torch.load(checkpoint_fpath)
+        checkpoint = torch.load(checkpoint_path)
 
         # initialize state_dict from checkpoint to model
         self.model.load_state_dict(checkpoint['state_dict'])
@@ -71,15 +75,15 @@ class Odin_model:
         loss_hist = Averager()
         itr = 1
 
-
         for epoch in range(num_epochs):
             loss_hist.reset()
 
             for images, targets, image_ids in train_data_loader:
-                images = list(image.to(device) for image in images)
-                targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+                images = list(image.to(self.device) for image in images)
+                targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
                 for index in range(0, len(targets)):
-                    targets[index]['labels'] = torch.ones(len(targets[index]['boxes']), dtype=torch.int64).to(device)
+                    targets[index]['labels'] = torch.ones(len(targets[index]['boxes']), dtype=torch.int64).to(
+                        self.device)
                 loss_dict = self.model(images, targets)
 
                 losses = sum(loss for loss in loss_dict.values())
@@ -96,22 +100,22 @@ class Odin_model:
 
                 itr += 1
 
-                grid = torchvision.utils.make_grid(images)
-                self.writer.add_image('images', grid, 0)
-                self.writer.add_graph(model, images)
+                # grid = torchvision.utils.make_grid(images)
+                # self.writer.add_image('images', grid, 0)
+                # self.writer.add_graph(self.model, images)
                 self.writer.add_scalar('Loss/train', loss_value, itr)
-                self.writer.add_scalar('Accuracy/train', np.random.random(), itr)
+                # self.writer.add_scalar('Accuracy/train', np.random.random(), itr)
 
             checkpoint = {
                 'epoch': epoch + 1,
                 'train_loss_min': loss_hist.value,
-                'state_dict': model.state_dict(),
-                'optimizer': optimizer.state_dict(),
+                'state_dict': self.model.state_dict(),
+                'optimizer': self.optimizer.state_dict(),
             }
 
             save_checkpoint(checkpoint, False, self.checkpoint_path, self.best_model_path)
 
-            ## save the model if validation loss has decreased
+            # save the model if validation loss has decreased
             if loss_hist.value <= train_loss_min:
                 print('Train loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(train_loss_min,
                                                                                            loss_hist.value))
@@ -145,18 +149,3 @@ class Averager:
     def reset(self):
         self.current_total = 0.0
         self.iterations = 0.0
-
-def save_checkpoint(state, is_best, checkpoint_path, best_model_path):
-    """
-    state: checkpoint we want to save
-    is_best: is this the best checkpoint; min validation loss
-    checkpoint_path: path to save checkpoint
-    best_model_path: path to save best model
-    """
-    # save checkpoint data to the path given, checkpoint_path
-    torch.save(state, checkpoint_path)
-
-    # if it is a best model, min validation loss
-    if is_best:
-        # copy that checkpoint file to best path given, best_model_path
-        shutil.copyfile(checkpoint_path, best_model_path)

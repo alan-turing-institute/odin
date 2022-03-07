@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "odni"
+name = "odin"
 version = "0.1.0"
 description = ""
 authors = ["mooniean <bmbcgomes@gmail.com>"]

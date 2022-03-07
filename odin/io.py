@@ -1,18 +1,40 @@
-import vne
-import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import patches
 import shutil
-
-from vne.special import ctf
-from vne.dataset import SimulatedDataset
-import vne.simulate as simulate
-
 import torch
-import torchvision
 
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-from torchvision.models.detection import FasterRCNN
 
-from torch.utils.data import DataLoader
+def deboxing(bbox):
+    corner = [bbox[0], bbox[1]]
+    height = bbox[3] - bbox[1]
+    width = bbox[2] - bbox[0]
+    return corner, height, width
+
+
+def show_each_image(sample, boxes=None, pred_boxes=None):
+    """
+    plot the images with or without the bounding boxes
+    """
+    plt.figure(figsize=(16, 16))
+    plt.imshow(sample[..., 0], plt.cm.gray)
+    ax = plt.gca()
+    if boxes is not None:
+        for bbox in boxes:
+            corner, height, width = deboxing(bbox)
+            rect = patches.Rectangle(
+                corner, width, height, linewidth=1, edgecolor=[0, 1, 0], facecolor='none'
+            )
+            ax.add_patch(rect)
+    if pred_boxes is not None:
+        for bbox in pred_boxes:
+            corner, height, width = deboxing(bbox)
+            rect = patches.Rectangle(
+                corner, width, height, linewidth=1, edgecolor=[0, 1, 0], facecolor='none'
+            )
+            ax.add_patch(rect)
+
+    plt.show()
+
 
 def save_checkpoint(state, is_best, checkpoint_path, best_model_path):
     """
@@ -28,34 +50,3 @@ def save_checkpoint(state, is_best, checkpoint_path, best_model_path):
     if is_best:
         # copy that checkpoint file to best path given, best_model_path
         shutil.copyfile(checkpoint_path, best_model_path)
-        
-def load_checkpoint(checkpoint_fpath, model, optimizer):
-    """
-    checkpoint_path: path to save checkpoint
-    model: model that we want to load checkpoint parameters into       
-    optimizer: optimizer we defined in previous training
-    """
-    # load check point
-    checkpoint = torch.load(checkpoint_fpath)
-
-    # initialize state_dict from checkpoint to model
-    model.load_state_dict(checkpoint['state_dict'])
-
-    # initialize optimizer from checkpoint to optimizer
-    optimizer.load_state_dict(checkpoint['optimizer'])
-    
-    # return model, optimizer, epoch value, min validation loss 
-    return model, optimizer, checkpoint['epoch']#, valid_loss_min.item()
-
-
-# Add this to VNE?
-def set_font(path:"./fonts/OpenSans-Regular.ttf"):
-	"""
-	path: path to the font
-	"""
-	simulate.set_default_font(path, 20)
-
-def show_image():
-	"""
-	plot the images with or without the bounding boxes
-	"""

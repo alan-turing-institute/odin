@@ -1,17 +1,18 @@
 import torch
 import torchvision
+from torch.utils.data import DataLoader
 
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
-from odin.io import save_checkpoint
+from odin.io import save_checkpoint, show_each_image, collate_fn
 
 
 class Odin_model:
 
     def __init__(
             self,
-            checkpoint_path: str = "/models/checkpoint.pt",
+            checkpoint_path: str = "models/checkpoint.pt",
             device: str = "default",
             nms: float = 0.75,
             pretrained: bool = True,
@@ -41,24 +42,26 @@ class Odin_model:
 
         # replace the pre-trained head with a new one
         self.model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
-        self.set_optimizer()
+        self.optimizer = torch.optim.SGD(self.params, 0.005, 0.9, 0.0005)
+        self.lr_scheduler = None
         if pretrained:
-            self.model.load(checkpoint_path)
+            self.load(checkpoint_path)
             print("Model loaded from " + checkpoint_path)
 
         else:
-            self.checkpoint_path = '/models/nms' + str(nms) + '_chkpoint_'
-            self.best_model_path = '/models/nms' + str(nms) + '_bestmodel.pt'
+            self.checkpoint_path = 'models/nms' + str(nms) + '_chkpoint_'
+            self.best_model_path = 'models/nms' + str(nms) + '_bestmodel.pt'
             print("New model: to train, use function .train()")
         self.writer = SummaryWriter()
 
     def set_optimizer(self, opt_type: str = "default", lr: float = 0.005, momentum: float = 0.9,
                       weight_decay: float = 0.0005, lr_scheduler=None):
-        self.optimizer = torch.optim.SGD(self.params, lr, momentum, weight_decay)
+        if opt_type in ["default", "SGD"]:
+            self.optimizer = torch.optim.SGD(self.params, lr, momentum, weight_decay)
         self.lr_scheduler = lr_scheduler
 
     def load(self,
-             checkpoint_path: str = "/models/checkpoint.pt"):
+             checkpoint_path: str = "models/checkpoint.pt"):
         """
             checkpoint_path: path to save checkpoint
         """
@@ -128,6 +131,24 @@ class Odin_model:
                 self.lr_scheduler.step()
 
             print(f"Epoch #{epoch} loss: {loss_hist.value}")
+
+    def predict(self, dataset, print_result: bool = False):
+        """
+        Receive the image and retrieves the predicted bounding boxes.
+        """
+        self.model.eval()
+        predict_data_loader = DataLoader(
+            dataset,
+            batch_size=16,
+            shuffle=False,
+            num_workers=0,
+            collate_fn=collate_fn
+        )
+        for image in predict_data_loader:
+            output = self.model([image])
+            bboxes = output[0]['boxes']
+            if print_result:
+                show_each_image(image, bboxes)
 
 
 class Averager:

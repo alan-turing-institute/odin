@@ -1,6 +1,5 @@
 # Add methods to evaluate the performance: map, joel's method
 import numpy as np
-import mean_average_score
 
 
 # retrieve mAP from the bboxes
@@ -14,10 +13,21 @@ import mean_average_score
 # repeat util you run out of predicted boxes
 # any remaining truth boxes can be assigned as false negatives
 
-def iou_bbox(box1, box2):
+def iou_bbox(gt_box, pred_box):
     """
     Method to calculate the Intersection over Union between two boxes
     """
+    inter_box_top_left = [max(gt_box[0], pred_box[0]), max(gt_box[1], pred_box[1])]
+    inter_box_bottom_right = [min(gt_box[0] + gt_box[2], pred_box[0] + pred_box[2]),
+                              min(gt_box[1] + gt_box[3], pred_box[1] + pred_box[3])]
+
+    inter_box_w = inter_box_bottom_right[0] - inter_box_top_left[0]
+    inter_box_h = inter_box_bottom_right[1] - inter_box_top_left[1]
+
+    intersection = inter_box_w * inter_box_h
+    union = gt_box[2] * gt_box[3] + pred_box[2] * pred_box[3] - intersection
+
+    iou = intersection / union
     return iou
 
 
@@ -32,7 +42,7 @@ def all_iou(box, list_gt):
     return result
 
 
-def confusion_matrix(ranked_predictions, gt):
+def confusion_matrix(ranked_predictions, gt, threshold=0):
     """
     For each box in the list of predicted + gt boxes, attribute TP, FP, FN.
     """
@@ -44,7 +54,7 @@ def confusion_matrix(ranked_predictions, gt):
     while len(ranked_predictions) > 0:
         scores = all_iou(ranked_predictions[-1], gt)
         max_iou = max(scores)
-        if max_iou > 0:
+        if max_iou > threshold:
             TP += 1
             max_ind = scores.index(max_iou)
             gt.pop(max_ind)
@@ -57,18 +67,38 @@ def confusion_matrix(ranked_predictions, gt):
     return TP, FN, FP
 
 
-def evaluate(pred_gt, pred_dict):
+def evaluate_image(gt_dict, pred_dict):
     """
-    Method to evaluate the score of the model
+    Method to evaluate the precision, recall and f1 of the model for bounding boxes in one image
 
     """
 
     # Step 1: organise all scores, sort predictions per score
     predictions = scored_bbox(pred_dict)
     ranked_predictions = predictions[predictions[:, -1].argsort()]
-    gt = pred_gt['boxes']
+    gt = gt_dict['boxes']
 
     TP, FN, FP = confusion_matrix(ranked_predictions, gt)
+    # Precision
+
+    precision = TP / (TP + FP)
+    recall = TP / (TP + FN)
+    f_one = (2 * precision * recall) / (precision + recall)
+
+    return precision, recall, f_one
+
+
+def evaluate_all(ground_truth, predictions):
+    """
+    Method to evaluate the precision, recall and f1 for all the images
+    """
+
+
+def mean_average_precision(precisions, recalls):
+    precisions = np.array(precisions)
+    recalls = np.array(recalls)
+
+    AP = np.sum((recalls[:-1] - recalls[1:]) * precisions[:-1])
 
 
 def scored_bbox(input_pred):

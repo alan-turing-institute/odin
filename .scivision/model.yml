@@ -1,9 +1,9 @@
 name: Odin
 url: https://github.com/alan-turing-institute/odin
 import: odin
-model: model
+model: Odin_model
 args: None
 prediction_fn:
     call: predict
     args:
-        X: image
+        X: dataset

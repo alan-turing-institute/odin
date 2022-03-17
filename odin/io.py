@@ -29,7 +29,7 @@ def show_each_image(sample, boxes=None, pred_boxes=None):
         for bbox in pred_boxes:
             corner, height, width = deboxing(bbox)
             rect = patches.Rectangle(
-                corner, width, height, linewidth=1, edgecolor=[0, 1, 0], facecolor='none'
+                corner, width, height, linewidth=1, edgecolor=[1, 0, 0], facecolor='none'
             )
             ax.add_patch(rect)
 
@@ -50,3 +50,7 @@ def save_checkpoint(state, is_best, checkpoint_path, best_model_path):
     if is_best:
         # copy that checkpoint file to best path given, best_model_path
         shutil.copyfile(checkpoint_path, best_model_path)
+
+
+def collate_fn(batch):
+    return tuple(zip(*batch))

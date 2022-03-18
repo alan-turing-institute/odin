@@ -1,11 +1,10 @@
 import torch
 import torchvision
-from torch.utils.data import DataLoader
 
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
-from odin.io import save_checkpoint, show_each_image, collate_fn
+from odin.io import save_checkpoint, show_each_image
 
 
 class Odin_model:
@@ -132,23 +131,17 @@ class Odin_model:
 
             print(f"Epoch #{epoch} loss: {loss_hist.value}")
 
-    def predict(self, dataset, print_result: bool = False):
+    def predict(self, image, print_result: bool = False):
         """
         Receive the image and retrieves the predicted bounding boxes.
         """
         self.model.eval()
-        predict_data_loader = DataLoader(
-            dataset,
-            batch_size=16,
-            shuffle=False,
-            num_workers=0,
-            collate_fn=collate_fn
-        )
-        for image in predict_data_loader:
-            output = self.model([image])
-            bboxes = output[0]['boxes']
-            if print_result:
-                show_each_image(image, bboxes)
+        output = self.model([image])
+        bboxes = output[0]['boxes']
+        if print_result:
+            show_each_image(image, bboxes)
+
+        return bboxes
 
 
 class Averager:

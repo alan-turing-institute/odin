@@ -6,4 +6,4 @@ args: None
 prediction_fn:
     call: predict
     args:
-        X: dataset
+        X: image

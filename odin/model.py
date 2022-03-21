@@ -11,7 +11,7 @@ class Odin_model:
 
     def __init__(
             self,
-            checkpoint_path: str = "https://github.com/alan-turing-institute/odin/models/checkpoint.pt",
+            checkpoint_path: str = "https://github.com/alan-turing-institute/odin/tree/main/models/checkpoint.pt",
             device: str = "default",
             nms: float = 0.75,
             pretrained: bool = True,

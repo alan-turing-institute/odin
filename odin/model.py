@@ -1,5 +1,6 @@
 import torch
 import torchvision
+import numpy as np
 
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
@@ -137,7 +138,7 @@ class Odin_model:
         """
 
         self.model.eval()
-        if type(image) not in ["np.ndarray", "numpy.ndarray"]:
+        if type(image).__module__ != np.__name__:
             image = image.to_numpy()
         image = torch.from_numpy(image).float()
         output = self.model([image])

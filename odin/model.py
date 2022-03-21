@@ -11,7 +11,7 @@ class Odin_model:
 
     def __init__(
             self,
-            checkpoint_path: str = "models/checkpoint.pt",
+            checkpoint_path: str = "https://github.com/alan-turing-institute/odin/models/checkpoint.pt",
             device: str = "default",
             nms: float = 0.75,
             pretrained: bool = True,
@@ -48,8 +48,8 @@ class Odin_model:
             print("Model loaded from " + checkpoint_path)
 
         else:
-            self.checkpoint_path = 'models/nms' + str(nms) + '_chkpoint_'
-            self.best_model_path = 'models/nms' + str(nms) + '_bestmodel.pt'
+            self.checkpoint_path = '/models/nms' + str(nms) + '_chkpoint_'
+            self.best_model_path = '/models/nms' + str(nms) + '_bestmodel.pt'
             print("New model: to train, use function .train()")
         self.writer = SummaryWriter()
 
@@ -135,7 +135,11 @@ class Odin_model:
         """
         Receive the image and retrieves the predicted bounding boxes.
         """
+
         self.model.eval()
+        if type(image) not in ["np.ndarray", "numpy.ndarray"]:
+            image = image.to_numpy()
+        image = torch.from_numpy(image)
         output = self.model([image])
         bboxes = output[0]['boxes']
         if print_result:

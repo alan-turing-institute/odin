@@ -139,7 +139,7 @@ class Odin_model:
         self.model.eval()
         if type(image) not in ["np.ndarray", "numpy.ndarray"]:
             image = image.to_numpy()
-        image = torch.from_numpy(image)
+        image = torch.from_numpy(image).float()
         output = self.model([image])
         bboxes = output[0]['boxes']
         if print_result:

@@ -140,7 +140,7 @@ class Odin_model:
         self.model.eval()
         if type(image).__module__ != np.__name__:
             image = image.to_numpy()
-        if len(image) < 3:
+        if len(image.shape) < 3:
             image = g_to_rgb(image)
         image = torch.from_numpy(image).float()
         output = self.model([image.to(self.device)])

@@ -5,7 +5,7 @@ import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
-from odin.io import save_checkpoint, show_each_image
+from odin.io import save_checkpoint, show_each_image, g_to_rgb
 
 
 class Odin_model:
@@ -140,6 +140,8 @@ class Odin_model:
         self.model.eval()
         if type(image).__module__ != np.__name__:
             image = image.to_numpy()
+        if len(image) < 3:
+            image = g_to_rgb(image)
         image = torch.from_numpy(image).float()
         output = self.model([image.to(self.device)])
         bboxes = output[0]['boxes']

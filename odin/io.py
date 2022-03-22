@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib import patches
 import shutil
 import torch
+import numpy as np
 
 
 def deboxing(bbox):
@@ -54,3 +55,10 @@ def save_checkpoint(state, is_best, checkpoint_path, best_model_path):
 
 def collate_fn(batch):
     return tuple(zip(*batch))
+
+
+def g_to_rgb(image):
+    a = image.to_numpy()
+    b = np.repeat(a[:, :, np.newaxis], 3, axis=2)
+    rer_b = np.transpose(b, axes=[2, 0, 1])
+    return rer_b

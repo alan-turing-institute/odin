@@ -141,7 +141,7 @@ class Odin_model:
         if type(image).__module__ != np.__name__:
             image = image.to_numpy()
         image = torch.from_numpy(image).float()
-        output = self.model([image])
+        output = self.model([image.to(self.device)])
         bboxes = output[0]['boxes']
         if print_result:
             show_each_image(image, bboxes)
